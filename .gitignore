@@ -1,3 +1,29 @@
+# Maven build files
 target/
+
+# Java compiled files
+*.class
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Generated large datasets
+large_transaction_events.csv
+
+# Generated reports
+daily_metrics_report.csv
+
+# Local dependency classpath
+classpath.txt
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# Operating system files
+.DS_Store
+Thumbs.db
 *.log
-data.db
