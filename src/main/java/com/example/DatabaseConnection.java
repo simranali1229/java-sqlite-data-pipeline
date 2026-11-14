@@ -1,4 +1,3 @@
-
 package com.example;
 
 import java.sql.Connection;
@@ -7,18 +6,32 @@ import java.sql.SQLException;
 
 public class DatabaseConnection {
 
-    private static final String URL = "jdbc:sqlite:product_metrics.db";
+    private static final String DEFAULT_URL =
+            "jdbc:sqlite:product_metrics.db";
 
     public static Connection connect() throws SQLException {
 
-        try {
-            // Explicitly load SQLite JDBC driver
-            Class.forName("org.sqlite.JDBC");
+        String url = System.getProperty("db.url", DEFAULT_URL);
 
+        return connect(url);
+    }
+
+    public static Connection connect(String url) throws SQLException {
+
+        try {
+            Class.forName("org.sqlite.JDBC");
         } catch (ClassNotFoundException e) {
-            throw new SQLException("SQLite JDBC driver not found. Check Maven dependency.", e);
+            throw new SQLException(
+                    "SQLite JDBC driver not found. Check Maven dependency.", e);
         }
 
-        return DriverManager.getConnection(URL);
+        Connection connection = DriverManager.getConnection(url);
+
+        // Enable foreign-key validation for this connection
+        try (var statement = connection.createStatement()) {
+            statement.execute("PRAGMA foreign_keys = ON");
+        }
+
+        return connection;
     }
 }
