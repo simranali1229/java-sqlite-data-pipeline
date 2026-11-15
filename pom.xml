@@ -10,16 +10,13 @@
     <artifactId>data-pipeline-project</artifactId>
     <version>1.0-SNAPSHOT</version>
 
-    <!-- Java Configuration -->
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- Dependencies -->
     <dependencies>
-
         <!-- SQLite Database -->
         <dependency>
             <groupId>org.xerial</groupId>
@@ -27,17 +24,15 @@
             <version>3.46.1.0</version>
         </dependency>
 
-        <!-- JUnit 4 for Automated Testing -->
+        <!-- JUnit 4 -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
-    <!-- Maven Build Configuration -->
     <build>
         <plugins>
 
@@ -52,7 +47,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Run Java Application -->
+            <!-- Run Java Applications -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
