@@ -72,9 +72,18 @@ public class DailyMetricsService implements AutoCloseable {
         findStateStatement.setInt(1, orderId);
 
         try (ResultSet rs = findStateStatement.executeQuery()) {
+
             if (rs.next()) {
-                newBusinessDate = rs.getString("business_date");
-                newProductId = rs.getInt("product_id");
+
+                newBusinessDate =
+                        rs.getString("business_date");
+
+                int productId =
+                        rs.getInt("product_id");
+
+                if (!rs.wasNull()) {
+                    newProductId = productId;
+                }
             }
         }
 
@@ -83,20 +92,34 @@ public class DailyMetricsService implements AutoCloseable {
                 && oldProductId != null
                 && newBusinessDate != null
                 && newProductId != null
-                && Objects.equals(oldBusinessDate, newBusinessDate)
+                && Objects.equals(
+                        oldBusinessDate,
+                        newBusinessDate)
                 && oldProductId.equals(newProductId);
 
         if (sameMetricGroup) {
-            recomputeKey(newBusinessDate, newProductId);
+
+            recomputeKey(
+                    newBusinessDate,
+                    newProductId);
+
             return;
         }
 
+        // Recompute the old metric group
         if (oldBusinessDate != null && oldProductId != null) {
-            recomputeKey(oldBusinessDate, oldProductId);
+
+            recomputeKey(
+                    oldBusinessDate,
+                    oldProductId);
         }
 
+        // Recompute the new metric group
         if (newBusinessDate != null && newProductId != null) {
-            recomputeKey(newBusinessDate, newProductId);
+
+            recomputeKey(
+                    newBusinessDate,
+                    newProductId);
         }
     }
 
@@ -104,14 +127,20 @@ public class DailyMetricsService implements AutoCloseable {
             String businessDate,
             int productId) throws SQLException {
 
+        // Delete previous metric
         deleteMetricStatement.setString(1, businessDate);
         deleteMetricStatement.setInt(2, productId);
+
         deleteMetricStatement.executeUpdate();
 
+        // Insert recalculated metric
         insertMetricStatement.setString(
-                1, Instant.now().toString());
+                1,
+                Instant.now().toString());
+
         insertMetricStatement.setString(2, businessDate);
         insertMetricStatement.setInt(3, productId);
+
         insertMetricStatement.executeUpdate();
     }
 
@@ -129,6 +158,7 @@ public class DailyMetricsService implements AutoCloseable {
         try {
             deleteMetricStatement.close();
         } catch (SQLException e) {
+
             if (error == null) {
                 error = e;
             } else {
@@ -139,6 +169,7 @@ public class DailyMetricsService implements AutoCloseable {
         try {
             insertMetricStatement.close();
         } catch (SQLException e) {
+
             if (error == null) {
                 error = e;
             } else {
