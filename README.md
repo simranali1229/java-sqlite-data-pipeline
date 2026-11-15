@@ -3,13 +3,11 @@
 
 ## 1. Project Overview
 
-This project implements a Java-based data engineering pipeline using SQLite.
+A Java-based data engineering pipeline that processes transaction events from CSV files and maintains product, customer, and daily business metrics using SQLite.
 
-It processes transaction events from CSV files and maintains product and customer order data.
+The pipeline supports incremental event ingestion, transaction updates, reversals, duplicate detection, rejected-record tracking, and data reconciliation.
 
-The pipeline supports incremental ingestion, duplicate detection, order updates, reversals, event history, and daily product metrics.
-
-## 2. Technologies Used
+## 2. Technologies
 
 - Java 17
 - SQLite
@@ -18,121 +16,120 @@ The pipeline supports incremental ingestion, duplicate detection, order updates,
 - JUnit 4
 - CSV
 
-## 3. Main Features
+## 3. Features
 
 - Product and customer database management
 - CSV transaction event ingestion
-- CREATE, UPDATE, and REVERSE event processing
+- CREATE, UPDATE, and REVERSE operations
 - Incremental data processing
 - Duplicate event detection
 - Rejected record tracking
-- Pipeline execution history
+- Event history management
+- Pipeline execution tracking
 - Daily product metrics
-- 100,000-record test data generation
-- Data reconciliation and performance reporting
+- Transaction state management
+- Data reconciliation
+- Performance benchmarking
+- PreparedStatement reuse
 
-## 4. Project Structure
+## 4. Database Tables
 
-```text
-data-pipeline-project/
-|
-|-- src/
-|   |-- main/
-|   |   |-- java/com/example/
-|   |       |-- App.java
-|   |       |-- DatabaseConnection.java
-|   |       |-- DatabaseSetup.java
-|   |       |-- DataSeeder.java
-|   |       |-- EventProcessor.java
-|   |       |-- TransactionDataGenerator.java
-|   |       |-- BulkIngestionRunner.java
-|   |       |-- DatabaseVerification.java
-|   |       |-- ReconciliationReport.java
-|   |
-|   |-- test/
-|       |-- java/com/example/
-|
-|-- product_metrics.db
-|-- transaction_events.csv
-|-- large_transaction_events.csv
-|-- pom.xml
-|-- README.md
-```
+- products
+- customers
+- orders
+- transaction_state
+- event_history
+- processed_events
+- rejected_records
+- pipeline_runs
+- daily_product_metrics
 
-## 5. Database Tables
-
-- products: Product information
-- customers: Customer information
-- orders: Original sample orders
-- transaction_state: Latest order state
-- event_history: Historical transaction events
-- processed_events: Duplicate event tracking
-- rejected_records: Invalid event records
-- pipeline_runs: Pipeline execution details
-
-## 6. Build the Project
+## 5. Build the Project
 
 ```bash
 mvn clean compile
 ```
 
-## 7. Run Unit Tests
+## 6. Run Automated Tests
 
 ```bash
 mvn clean test
 ```
 
-## 8. Generate 100,000 Transaction Events
+Latest test result:
 
-```bash
-java -cp target/classes com.example.TransactionDataGenerator large_transaction_events.csv 100000
-```
+- Total tests: 32
+- Passed: 32
+- Failed: 0
+- Errors: 0
+- Skipped: 0
 
-## 9. Run Bulk Ingestion
+## 7. Generate Transaction Events
 
-Generate the dependency classpath:
+Generate 100,000 events:
 
 ```bash
 mvn dependency:build-classpath -Dmdep.outputFile=classpath.txt
 ```
 
-Run the bulk ingestion:
-
-```powershell
-powershell -NoProfile -Command "$cp = (Get-Content .\classpath.txt -Raw).Trim(); java -cp ('target\classes;' + $cp) com.example.BulkIngestionRunner large_transaction_events.csv"
+```bash
+java -cp "target\classes;%CP%" com.example.TransactionDataGenerator large_transaction_events.csv 100000
 ```
 
-## 10. Verify Database Records
+## 8. Run Bulk Ingestion
 
-```powershell
-powershell -NoProfile -Command "$cp = (Get-Content .\classpath.txt -Raw).Trim(); java -cp ('target\classes;' + $cp) com.example.DatabaseVerification"
+```bash
+java -cp "target\classes;%CP%" com.example.BulkIngestionRunner large_transaction_events.csv
 ```
 
-## 11. Run Data Reconciliation
+## 9. Database Verification
 
-```powershell
-powershell -NoProfile -Command "$cp = (Get-Content .\classpath.txt -Raw).Trim(); java -cp ('target\classes;' + $cp) com.example.ReconciliationReport"
+```bash
+java -cp "target\classes;%CP%" com.example.DatabaseVerification
 ```
 
-## 12. Idempotency
+## 10. Data Reconciliation
 
-The pipeline tracks processed event IDs.
+```bash
+java -cp "target\classes;%CP%" com.example.ReconciliationReport
+```
 
-When the same CSV file is processed again, previously processed events are detected as duplicates and are not inserted again.
+## 11. Performance Testing
 
-## 13. Testing Results
+The project includes PerformanceTestRunner and TransactionDataGenerator for benchmarking.
 
-The project has passed 17 automated tests in the current test suite.
+Latest 10,000-event benchmark:
 
-A 100,000-record ingestion run accepted all 100,000 records with zero rejected records.
+| Run | Processing Time | Throughput |
+|---|---:|---:|
+| First | 121.52 seconds | 82.29 events/sec |
+| Second | 118.17 seconds | 84.63 events/sec |
+| Average | 119.85 seconds | 83.46 events/sec |
 
-A second run detected all 100,000 records as duplicates.
+These are measured results from the local test environment.
+
+## 12. Reconciliation Results
+
+Latest benchmark database verification:
+
+- Event IDs missing from processed_events: 0
+- Event IDs missing from event_history: 0
+- Daily metric mismatches: 0
+- Event history records: 270011
+- Processed event records: 270011
+- Inconsistent pipeline runs: 0
+
+Overall reconciliation: PASSED.
+
+## 13. Idempotency
+
+Previously processed event IDs are detected and skipped when the same events are submitted again.
 
 ## 14. Future Improvements
 
-- Stronger data reconciliation
-- Improved CSV parsing for quoted fields
-- Schema drift handling
+- More efficient bulk metric aggregation
+- Improved multiline CSV parsing
+- Schema evolution support
 - Better failure recovery
-- Performance optimization
-- Detailed logging and monitoring
+- Performance monitoring
+- Structured logging

@@ -12,7 +12,7 @@ public class DatabaseSetup {
         try (Connection connection = DatabaseConnection.connect();
              Statement statement = connection.createStatement()) {
 
-            // Enable foreign key validation for this connection
+            // Enable foreign key validation
             statement.execute("PRAGMA foreign_keys = ON");
 
             connection.setAutoCommit(false);
@@ -136,19 +136,36 @@ public class DatabaseSetup {
                     )
                     """;
 
+                // 9. DAILY PRODUCT METRICS TABLE
+                String dailyProductMetricsTable = """
+                    CREATE TABLE IF NOT EXISTS daily_product_metrics (
+                        business_date TEXT NOT NULL,
+                        product_id INTEGER NOT NULL,
+                        order_count INTEGER NOT NULL DEFAULT 0,
+                        total_quantity INTEGER NOT NULL DEFAULT 0,
+                        total_revenue REAL NOT NULL DEFAULT 0,
+                        updated_at TEXT NOT NULL,
+                        PRIMARY KEY (business_date, product_id),
+                        FOREIGN KEY(product_id) REFERENCES products(product_id)
+                    )
+                    """;
+
                 // Create existing tables
                 statement.execute(productsTable);
                 statement.execute(customersTable);
                 statement.execute(ordersTable);
 
-                // Create new tables
+                // Create pipeline tables
                 statement.execute(pipelineRunsTable);
                 statement.execute(transactionStateTable);
                 statement.execute(eventHistoryTable);
                 statement.execute(processedEventsTable);
                 statement.execute(rejectedRecordsTable);
 
-                // Indexes for faster queries
+                // Create daily metrics table
+                statement.execute(dailyProductMetricsTable);
+
+                // Create indexes for faster queries
                 statement.execute("""
                     CREATE INDEX IF NOT EXISTS idx_state_business_date
                     ON transaction_state(business_date)
@@ -159,8 +176,13 @@ public class DatabaseSetup {
                     ON event_history(order_id)
                     """);
 
+                statement.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_daily_metrics_product
+                    ON daily_product_metrics(product_id)
+                    """);
+
                 // Migrate existing orders into transaction state.
-                // Version 0 represents the original baseline data.
+                // Version 0 represents original baseline data.
                 statement.execute("""
                     INSERT OR IGNORE INTO transaction_state (
                         order_id,
@@ -188,6 +210,34 @@ public class DatabaseSetup {
                     FROM orders
                     """);
 
+                // Refresh daily metrics from current active orders.
+                // This also rebuilds the summary when setup runs again.
+                statement.executeUpdate(
+                    "DELETE FROM daily_product_metrics"
+                );
+
+                statement.executeUpdate("""
+                    INSERT INTO daily_product_metrics (
+                        business_date,
+                        product_id,
+                        order_count,
+                        total_quantity,
+                        total_revenue,
+                        updated_at
+                    )
+                    SELECT
+                        business_date,
+                        product_id,
+                        COUNT(*),
+                        SUM(quantity),
+                        SUM(quantity * unit_price),
+                        CURRENT_TIMESTAMP
+                    FROM transaction_state
+                    WHERE is_active = 1
+                    GROUP BY business_date, product_id
+                    """);
+
+                // Commit all database changes
                 connection.commit();
 
                 System.out.println("==================================");
@@ -201,18 +251,29 @@ public class DatabaseSetup {
                 System.out.println("Event history table ready!");
                 System.out.println("Processed events table ready!");
                 System.out.println("Rejected records table ready!");
+                System.out.println("Daily product metrics table ready!");
                 System.out.println("Existing orders migrated!");
+                System.out.println("Daily metrics refreshed!");
 
             } catch (SQLException e) {
 
-                connection.rollback();
+                // Roll back if any database operation fails
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackException) {
+                    e.addSuppressed(rollbackException);
+                }
+
                 throw e;
             }
 
         } catch (SQLException e) {
 
-            System.out.println("Error creating database tables!");
-            e.printStackTrace();
+            // Propagate the error instead of silently continuing
+            throw new IllegalStateException(
+                "Database setup failed. Please check the database connection and SQL statements.",
+                e
+            );
         }
     }
 }

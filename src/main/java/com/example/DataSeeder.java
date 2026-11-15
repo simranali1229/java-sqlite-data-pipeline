@@ -14,6 +14,7 @@ public class DataSeeder {
             connection.setAutoCommit(false);
 
             try {
+
                 // Insert products
                 String productSQL = """
                     INSERT OR IGNORE INTO products
@@ -21,7 +22,8 @@ public class DataSeeder {
                     VALUES (?, ?, ?, ?)
                     """;
 
-                try (PreparedStatement ps = connection.prepareStatement(productSQL)) {
+                try (PreparedStatement ps =
+                         connection.prepareStatement(productSQL)) {
 
                     Object[][] products = {
                         {1, "Laptop", "Electronics", 55000.0},
@@ -49,7 +51,8 @@ public class DataSeeder {
                     VALUES (?, ?, ?, ?)
                     """;
 
-                try (PreparedStatement ps = connection.prepareStatement(customerSQL)) {
+                try (PreparedStatement ps =
+                         connection.prepareStatement(customerSQL)) {
 
                     Object[][] customers = {
                         {1, "Rahul", "rahul@example.com", "Bangalore"},
@@ -73,11 +76,13 @@ public class DataSeeder {
                 // Insert orders
                 String orderSQL = """
                     INSERT OR IGNORE INTO orders
-                    (order_id, customer_id, product_id, quantity, unit_price, order_date)
+                    (order_id, customer_id, product_id, quantity,
+                     unit_price, order_date)
                     VALUES (?, ?, ?, ?, ?, ?)
                     """;
 
-                try (PreparedStatement ps = connection.prepareStatement(orderSQL)) {
+                try (PreparedStatement ps =
+                         connection.prepareStatement(orderSQL)) {
 
                     Object[][] orders = {
                         {1, 1, 1, 1, 55000.0, "2026-11-10"},
@@ -103,6 +108,7 @@ public class DataSeeder {
                     ps.executeBatch();
                 }
 
+                // Commit all sample data
                 connection.commit();
 
                 System.out.println("Sample products inserted!");
@@ -110,13 +116,24 @@ public class DataSeeder {
                 System.out.println("Sample orders inserted!");
 
             } catch (SQLException e) {
-                connection.rollback();
+
+                // Roll back if insertion fails
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackException) {
+                    e.addSuppressed(rollbackException);
+                }
+
                 throw e;
             }
 
         } catch (SQLException e) {
-            System.out.println("Error inserting sample data!");
-            e.printStackTrace();
+
+            // Propagate the error to the calling application
+            throw new IllegalStateException(
+                "Sample data insertion failed. Please check the database connection and SQL statements.",
+                e
+            );
         }
     }
 }
